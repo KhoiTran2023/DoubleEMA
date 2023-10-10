@@ -1,46 +1,69 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © gilbert123123456
+
 //@version=5
-indicator('Condition', overlay=true)
+indicator("9/20 EMA", overlay=true)
 
-// Input options
-// averageData = input.source(close, title="Average Data Source")
+//set up the 9 and 20 EMA
+nine_ema_len = 9 
+twenty_ema_len = 20 
+nine_ema = request.security("TSLA", "5", ta.ema(close,nine_ema_len), barmerge.gaps_on) 
+twenty_ema = request.security("TSLA", "5", ta.ema(close,twenty_ema_len),barmerge.gaps_on) 
+plot(nine_ema, color=color.blue, title="Fast EMA") 
+plot(twenty_ema, color=color.fuchsia, title="Slow EMA") 
 
-fastLength = 9
-slowLength = 20
-breakOutDist = 3
-var float crossOverLongHigh = -1
-var float stopLoss = -1
-var bool buy = false
-plotShapeBuy = false
-plotShapeSell = false
-plotConsideration = false
+//stop loss
+sl = twenty_ema
 
-// Calculate exponential moving averages
-//fastAverage = ta.ema(close, fastLength)
-fastAverage = request.security("TSLA", "5", ta.ema(close,fastLength))
-slowAverage = request.security("TSLA", "5", ta.ema(close,slowLength))
-barsRight = input(5)
+//recording highs of the dip candle
+var float dip_candle_extremity = -1
 
-// Plot averages
-plot(fastAverage, color=color.blue, title="Fast EMA")
-plot(slowAverage, color=color.fuchsia, title="Slow EMA")
+//profit target
+var float profit_target = -1
 
-if fastAverage > slowAverage
-    if close < fastAverage and close > slowAverage and not plotConsideration
-        crossOverLongHigh := high
-        stopLoss := slowAverage
-        plotConsideration := true
-    else
-        if close > crossOverLongHigh + breakOutDist and not buy
-            plotShapeBuy := true
-            buy := true
-        else if (close < stopLoss or close > 2.002 * crossOverLongHigh - stopLoss) and buy
-            plotShapeSell := true
-            buy := false
-            plotConsideration := false
-plot(crossOverLongHigh, color=color.green, title="Cross Over")
-plot(stopLoss, color = color.red, title="Stop Loss")
-plot(2.002 * crossOverLongHigh - stopLoss, color = color.orange, title="Profit Target")
-// plotshape(plotConsideration,text="CONSIDERING", style=shape.triangledown, location=location.belowbar, color=color.orange, size=size.small)
-plotshape(plotShapeBuy,text="BUY LONG", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
-plotshape(plotShapeSell,text="SELL LONG", style=shape.triangledown, location=location.belowbar, color=color.red, size=size.small)
-    
+//position
+var bool long_position = false
+var bool short_position = false
+bool buy = false
+bool dip = false
+
+var bool interested_position = false
+//if 9 EMA is above 20 EMA, then it is uptrend, look to take a long position, and make sure price is above 20 EMA
+if nine_ema > twenty_ema and close > twenty_ema
+    //then interested in long position
+    //if (1 minute) candle closes (below) 9 ema and (above) 20 ema
+    if close > twenty_ema and close < nine_ema and not interested_position
+        interested_position := true //closed between 9/20 interested in taking a position and set dip candle extremity to the high
+        dip_candle_extremity := high
+        dip := true
+        //be interested until SL is hit
+    if close <= sl or long_position
+        interested_position := false
+    //if we are still interested in taking a position, let's check if the dip candle's high is broken, or else you would pass
+    if interested_position and close > dip_candle_extremity
+        //indicate long position
+        long_position := true
+        buy := true
+        //set sl and target, where PT is one times SL
+        profit_target := close + (dip_candle_extremity-sl)
+        //reset values
+        interested_position := false
+        dip_candle_extremity := -1
+else if nine_ema < twenty_ema
+    dip_candle_extremity := -1
+    interested_position := false
+    long_position := false
+
+if long_position
+    //if we are still in a position, check for long position close out
+    if close >= profit_target or close <= sl
+        long_position := false
+        short_position := true
+
+//plot for indicator
+plotshape(buy,text="BUY LONG", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+plotshape(short_position,text="SELL LONG", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
+plotshape(dip,text="DIP CANDLE", style=shape.triangleup, location=location.belowbar, color=color.orange, size=size.small)
+if short_position
+    long_position := false
+    short_position := false
