@@ -15,8 +15,9 @@ plotShapeSell = false
 plotConsideration = false
 
 // Calculate exponential moving averages
-fastAverage = ta.ema(close, fastLength)
-slowAverage = ta.ema(close, slowLength)
+//fastAverage = ta.ema(close, fastLength)
+fastAverage = request.security("TSLA", "5", ta.ema(close,fastLength))
+slowAverage = request.security("TSLA", "5", ta.ema(close,slowLength))
 barsRight = input(5)
 
 // Plot averages
@@ -24,8 +25,8 @@ plot(fastAverage, color=color.blue, title="Fast EMA")
 plot(slowAverage, color=color.fuchsia, title="Slow EMA")
 
 if fastAverage > slowAverage
-    if close < fastAverage and close > slowAverage
-        crossOverLongHigh := close
+    if close < fastAverage and close > slowAverage and not plotConsideration
+        crossOverLongHigh := high
         stopLoss := slowAverage
         plotConsideration := true
     else
@@ -35,6 +36,7 @@ if fastAverage > slowAverage
         else if (close < stopLoss or close > 2.002 * crossOverLongHigh - stopLoss) and buy
             plotShapeSell := true
             buy := false
+            plotConsideration := false
 plot(crossOverLongHigh, color=color.green, title="Cross Over")
 plot(stopLoss, color = color.red, title="Stop Loss")
 plot(2.002 * crossOverLongHigh - stopLoss, color = color.orange, title="Profit Target")
