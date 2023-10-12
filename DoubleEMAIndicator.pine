@@ -7,8 +7,8 @@ indicator("9/20 EMA", overlay=true)
 //set up the 9 and 20 EMA
 nine_ema_len = 9 
 twenty_ema_len = 20 
-nine_ema = request.security("TSLA", "5", ta.ema(close,nine_ema_len), barmerge.gaps_on) 
-twenty_ema = request.security("TSLA", "5", ta.ema(close,twenty_ema_len),barmerge.gaps_on) 
+nine_ema = request.security(syminfo.ticker, "5", ta.ema(close,nine_ema_len), barmerge.gaps_on) 
+twenty_ema = request.security(syminfo.ticker, "5", ta.ema(close,twenty_ema_len),barmerge.gaps_on) 
 plot(nine_ema, color=color.blue, title="Fast EMA") 
 plot(twenty_ema, color=color.fuchsia, title="Slow EMA") 
 
@@ -49,6 +49,7 @@ if nine_ema > twenty_ema and close > twenty_ema
         //reset values
         interested_position := false
         dip_candle_extremity := -1
+        dip := false
 else if nine_ema < twenty_ema
     dip_candle_extremity := -1
     interested_position := false
@@ -56,7 +57,7 @@ else if nine_ema < twenty_ema
 
 if long_position
     //if we are still in a position, check for long position close out
-    if close >= profit_target or close <= sl
+    if high >= profit_target or close <= sl
         long_position := false
         short_position := true
 
