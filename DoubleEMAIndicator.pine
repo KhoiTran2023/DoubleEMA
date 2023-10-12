@@ -29,6 +29,8 @@ bool dip = false
 
 var bool interested_position = false
 //if 9 EMA is above 20 EMA, then it is uptrend, look to take a long position, and make sure price is above 20 EMA
+if close <= sl or long_position
+    interested_position := false
 if nine_ema > twenty_ema and close > twenty_ema
     //then interested in long position
     //if (1 minute) candle closes (below) 9 ema and (above) 20 ema
@@ -37,15 +39,13 @@ if nine_ema > twenty_ema and close > twenty_ema
         dip_candle_extremity := high
         dip := true
         //be interested until SL is hit
-    if close <= sl or long_position
-        interested_position := false
     //if we are still interested in taking a position, let's check if the dip candle's high is broken, or else you would pass
     if interested_position and close > dip_candle_extremity
         //indicate long position
         long_position := true
         buy := true
         //set sl and target, where PT is one times SL
-        profit_target := close + (dip_candle_extremity-sl)
+        profit_target := close + math.abs(dip_candle_extremity-sl)
         //reset values
         interested_position := false
         dip_candle_extremity := -1
