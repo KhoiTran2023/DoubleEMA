@@ -1,0 +1,131 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=5
+strategy("9/20 EMA Strategy", overlay=true, default_qty_value = 1)
+
+//set up the 9 and 20 EMA
+nine_ema_len = 9 
+twenty_ema_len = 20 
+nine_ema = request.security(syminfo.ticker, "5", ta.ema(close,nine_ema_len), barmerge.gaps_on) 
+twenty_ema = request.security(syminfo.ticker, "5", ta.ema(close,twenty_ema_len),barmerge.gaps_on) 
+plot(nine_ema, color=color.blue, title="Fast EMA") 
+plot(twenty_ema, color=color.fuchsia, title="Slow EMA") 
+
+//stop loss
+sl = twenty_ema
+
+//recording highs of the dip candle
+var float dip_candle_extremity = -1
+
+//profit target
+var float profit_target = -1
+
+//position
+var bool long_position = false
+var bool short_position = false
+bool buy = false
+bool dip = false
+
+var bool interested_position = false
+//if 9 EMA is above 20 EMA, then it is uptrend, look to take a long position, and make sure price is above 20 EMA
+if nine_ema > twenty_ema and close > twenty_ema
+    if close <= sl or long_position
+        interested_position := false
+    //then interested in long position
+    //if (1 minute) candle closes (below) 9 ema and (above) 20 ema
+    if close > twenty_ema and close < nine_ema and not interested_position
+        interested_position := true //closed between 9/20 interested in taking a position and set dip candle extremity to the high
+        dip_candle_extremity := high
+        dip := true
+        //be interested until SL is hit
+    //if we are still interested in taking a position, let's check if the dip candle's high is broken, or else you would pass
+    if interested_position and close > dip_candle_extremity
+        //indicate long position
+        long_position := true
+        buy := true
+        //buy order
+        strategy.entry("OPEN LONG", strategy.long)
+        //set sl and target, where PT is one times SL
+        profit_target := close + 2*math.abs(dip_candle_extremity-sl)
+        //reset values
+        interested_position := false
+        dip_candle_extremity := -1
+        dip := false
+else if nine_ema < twenty_ema
+    dip_candle_extremity := -1
+    interested_position := false
+    long_position := false
+
+if long_position
+    //if we are still in a position, check for long position close out
+    if high >= profit_target or close <= sl
+        long_position := false
+        short_position := true
+        strategy.close("OPEN LONG")
+
+//plot for indicator
+plotshape(buy,text="OPEN LONG", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+plotshape(short_position,text="CLOSE LONG", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
+plotshape(dip,text="DIP CANDLE", style=shape.triangleup, location=location.belowbar, color=color.orange, size=size.small)
+
+
+if short_position
+    long_position := false
+    short_position := false
+
+//recording highs of the dip candle
+var float dip_candle_extremity1 = -1
+
+//profit target
+var float profit_target1 = -1
+
+//position
+var bool long_position1 = false
+var bool short_position1 = false
+bool sell = false
+bool dip1 = false
+
+var bool interested_position1 = false
+//if 9 EMA is above 20 EMA, then it is uptrend, look to take a long position, and make sure price is above 20 EMA
+if nine_ema < twenty_ema and close < twenty_ema
+    if close >= sl or short_position1
+        interested_position1 := false
+    //then interested in long position
+    //if (1 minute) candle closes (below) 9 ema and (above) 20 ema
+    if close < twenty_ema and close > nine_ema and not interested_position1
+        interested_position1 := true //closed between 9/20 interested in taking a position and set dip candle extremity to the high
+        dip_candle_extremity1 := low
+        dip1 := true
+        //be interested until SL is hit
+    //if we are still interested in taking a position, let's check if the dip candle's high is broken, or else you would pass
+    if interested_position1 and close < dip_candle_extremity1
+        //indicate long position
+        short_position1 := true
+        sell := true
+        strategy.entry("OPEN SHORT", strategy.short)
+        //set sl and target, where PT is one times SL
+        profit_target1 := close - math.abs(dip_candle_extremity1-sl)
+        //reset values
+        interested_position1 := false
+        dip_candle_extremity1 := -1
+        dip1 := false
+else if nine_ema > twenty_ema
+    dip_candle_extremity1 := -1
+    interested_position1 := false
+    short_position1 := false
+
+if short_position1
+    //if we are still in a position, check for long position close out
+    if low <= profit_target1 or close >= sl
+        short_position1 := false
+        long_position1 := true
+        strategy.close("OPEN SHORT")
+
+//plot for indicator
+plotshape(sell,text="OPEN SHORT", style=shape.triangledown, location=location.abovebar, color=color.green, size=size.small)
+plotshape(long_position1,text="CLOSE SHORT", style=shape.triangleup, location=location.belowbar, color=color.red, size=size.small)
+plotshape(dip1,text="DIP CANDLE", style=shape.triangleup, location=location.belowbar, color=color.orange, size=size.small)
+
+if long_position1
+    short_position1 := false
+    long_position1 := false
