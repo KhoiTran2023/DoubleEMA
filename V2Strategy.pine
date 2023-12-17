@@ -46,7 +46,7 @@ if nine_ema > twenty_ema and close > twenty_ema
         //buy order
         strategy.entry("OPEN LONG", strategy.long)
         //set sl and target, where PT is one times SL
-        profit_target := close + 2*math.abs(dip_candle_extremity-sl)
+        profit_target := close + 1.75*math.abs(dip_candle_extremity-sl)
         //reset values
         interested_position := false
         dip_candle_extremity := -1
